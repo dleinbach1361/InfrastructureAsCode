@@ -1,0 +1,67 @@
+---
+Resources:
+  # Create the VPC
+  MyAnsibleVPC:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: '10.128.0.0/16'
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-playground-vpc'
+  
+  # Create each of the subnet
+  MyAnsiblePublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: '10.128.0.0/24'
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-playground-subnet-a'
+      VpcId: !Ref MyAnsibleVPC
+  MyAnsiblePrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: '10.128.8.0/24'
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-private-playground-subnet-a'
+      VpcId: !Ref MyAnsibleVPC
+  # Create Internet gateway
+  MyInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-internet-gateway'
+  
+  # Attach IGW
+  MyAttachIGWtoVPC:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !Ref MyInternetGateway
+      VpcId: !Ref MyAnsibleVPC
+
+  # Create Elastic IP addresses
+  MyElasticIPForNatA:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: VPC
+      Tags: 
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-EIP-NAT-gateway-a'
+
+  # Create NAT Gateways
+  MyCreateNatGatewayA:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId: !GetAtt MyElasticIPForNatA.AllocationId
+      SubnetId: !Ref MyAnsiblePublicSubnet
+      Tags: 
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-NAT-gateway-a'
