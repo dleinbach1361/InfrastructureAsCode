@@ -16,7 +16,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       CidrBlock: '10.128.0.0/24'
-      MapPublicIpOnLaunch: false
+      MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [ 0, !GetAZs ]
       Tags:
         - Key: Name
@@ -61,7 +61,39 @@ Resources:
     Type: AWS::EC2::NatGateway
     Properties: 
       AllocationId: !GetAtt MyElasticIPForNatA.AllocationId
-      SubnetId: !Ref MyAnsiblePublicSubnet
+      SubnetId: !Ref MyAnsiblePublicSubnetA
       Tags: 
         - Key: Name
           Value: !Sub '${AWS::StackName}-NAT-gateway-a'
+
+  # Create all the routing tables
+  MyPublicRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref MyAnsibleVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-rt-a'
+  MyPrivateRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref MyAnsibleVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-private-rt-a'
+
+  # Add IGW to route to our tables public traffic
+  MyAddIGWRoutingRuleA:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref MyPublicRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref MyInternetGateway
+
+  # Add NAT gateway routes to route tables
+  MyAddNATRoutingRuleA:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref MyPrivateRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref MyCreateNatGatewayA
