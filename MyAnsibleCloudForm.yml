@@ -97,3 +97,48 @@ Resources:
       RouteTableId: !Ref MyPrivateRouteTableA
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref MyCreateNatGatewayA
+
+  # Make subnet association with route tables
+  MyAssociatePublicSubnetAWithRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref MyPublicRouteTableA
+      SubnetId: !Ref MyAnsiblePublicSubnetA
+  LnAssociatePrivateWebserverASubnetWithRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref MyPrivateRouteTableA
+      SubnetId: !Ref MyAnsiblePrivateSubnetA
+
+  # Create the security groups
+  MySecurityGroupForBastion:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group created for Bation Host.
+      VpcId : !Ref MyAnsibleVPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-bastion-host-sg'
+        - Key: Description
+          Value: !Sub 'Security Group created for Bastion Host with ${AWS::StackName}.'
+  MySecurityGroupForservers:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub 'Security Group created for Ubuntu servers with ${AWS::StackName}'
+      VpcId : !Ref MyAnsibleVPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        SourceSecurityGroupId: !Ref MySecurityGroupForBastion
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-Ubuntuservers-sg'
+        - Key: Description
+          Value: !Sub 'Security Group created for Ubuntuservers with ${AWS::StackName}.'
+
