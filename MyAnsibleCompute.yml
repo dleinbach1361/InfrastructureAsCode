@@ -1,0 +1,48 @@
+---
+Parameters:
+  SubnetIdBastionHost:
+    Description: The ID of the subnet for the Bastion Host.
+    Type: AWS::EC2::Subnet::Id
+  SubnetIdWorkers:
+    Description: The ID of the subnet for the workers.
+    Type: AWS::EC2::Subnet::Id
+  SecurityGroupIdBastionHost:
+    Description: Security Group used for the BastionHost.
+    Type: AWS::EC2::SecurityGroup::Id
+  SecurityGroupIdWorkers:
+    Description: Security Group used for the workers.
+    Type: AWS::EC2::SecurityGroup::Id
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: ami-09e67e426f25ce0d7
+    us-east-2:
+      AMI: ami-00399ec92321828f5
+    us-west-1:
+      AMI: ami-0d382e80be7ffdae5
+    us-west-2:
+      AMI: ami-03d5c68bab01f3496
+
+Resources:
+  MyBastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId:
+        Fn::FindInMap:
+        - RegionMap
+        - !Ref AWS::Region
+        - AMI
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [!Sub '${AWS::StackName}', 'bastionhost', 'instance'] ]
+      SecurityGroupIds:
+        - !Ref SecurityGroupIdBastionHost
+      SubnetId: !Join [ ',', [!Ref SubnetIdBastionHost] ]
+      UserData:
+        Fn::Base64:
+          !Join [ "", [
+            "#!/bin/bash -xe\n",
+            "sudo apt update -y\n",
+            "sudo apt install ansible -y\n"] ]
+    
